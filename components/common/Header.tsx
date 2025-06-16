@@ -1,8 +1,8 @@
 import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Colors } from "../../utils/constants";
+import { Colors, Fonts, FontSizes, Shadows } from "../../utils/constants";
 import { t } from "../../utils/i18n";
 
 interface HeaderProps {
@@ -16,14 +16,33 @@ export default function Header({ onMenuPress, onLocationPress }: HeaderProps) {
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.content}>
-        <TouchableOpacity style={styles.button} onPress={onLocationPress}>
-          <Ionicons name="location" size={24} color={Colors.gray.dark} />
+        <TouchableOpacity
+          style={styles.locationButton}
+          onPress={onLocationPress}
+          activeOpacity={0.7}
+        >
+          <View style={styles.iconCircle}>
+            <MaterialCommunityIcons
+              name="crosshairs-gps"
+              size={24}
+              color={Colors.primary}
+            />
+          </View>
         </TouchableOpacity>
 
-        <Text style={styles.title}>{t.appName}</Text>
+        <View style={styles.logoContainer}>
+          <Text style={styles.logo}>PLAYBOX</Text>
+          <View style={styles.logoUnderline} />
+        </View>
 
-        <TouchableOpacity style={styles.button} onPress={onMenuPress}>
-          <Ionicons name="menu" size={24} color={Colors.gray.dark} />
+        <TouchableOpacity
+          style={styles.menuButton}
+          onPress={onMenuPress}
+          activeOpacity={0.7}
+        >
+          <View style={styles.iconCircle}>
+            <Ionicons name="menu" size={28} color={Colors.primary} />
+          </View>
         </TouchableOpacity>
       </View>
     </View>
@@ -38,11 +57,7 @@ const styles = StyleSheet.create({
     right: 0,
     backgroundColor: Colors.white,
     zIndex: 1000,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 5,
+    ...Shadows.medium,
   },
   content: {
     flexDirection: "row",
@@ -51,13 +66,37 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
   },
-  button: {
-    padding: 8,
+  locationButton: {
+    padding: 4,
   },
-  title: {
-    fontSize: 20,
-    fontWeight: "bold",
+  menuButton: {
+    padding: 4,
+  },
+  iconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: Colors.gray.light,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  logoContainer: {
+    alignItems: "center",
+  },
+  logo: {
+    fontSize: FontSizes.xxlarge,
+    fontFamily: Fonts.logo,
     color: Colors.primary,
-    letterSpacing: 1,
+    letterSpacing: 2,
+    textShadowColor: "rgba(255, 107, 53, 0.3)",
+    textShadowOffset: { width: 2, height: 2 },
+    textShadowRadius: 4,
+  },
+  logoUnderline: {
+    width: 60,
+    height: 3,
+    backgroundColor: Colors.secondary,
+    borderRadius: 2,
+    marginTop: -2,
   },
 });
