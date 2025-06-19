@@ -32,8 +32,7 @@ export default function BottomDrawer() {
   );
 
   const activeReservations = reservations.filter(
-    (r) => r.status === "active" || r.status === "upcoming"
-  );
+    (r) => r.status === "confirmed" || r.status === "pending"  );
 
   const handleTabChange = (tab: "stations" | "reservations") => {
     setActiveTab(tab);

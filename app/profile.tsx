@@ -15,7 +15,7 @@ import {
   FontAwesome5,
 } from "@expo/vector-icons";
 import { Colors, Fonts, FontSizes, Shadows } from "../utils/constants";
-import { useAuth } from "../contexts/AuthContext";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function ProfileScreen() {
   const router = useRouter();

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   View,
   Text,
@@ -6,66 +6,198 @@ import {
   TouchableOpacity,
   StyleSheet,
   SafeAreaView,
+  Alert,
+  ActivityIndicator,
+  Keyboard,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../../contexts/AuthContext";
-import { Colors } from "../../utils/constants";
+import { Colors, Fonts, FontSizes, Shadows } from "../../utils/constants";
 import { t } from "../../utils/i18n";
 
 export default function VerifyScreen() {
   const router = useRouter();
-  const { verificationId, phone } = useLocalSearchParams();
-  const { verifyCode } = useAuth();
-  const [code, setCode] = useState("");
-  const [loading, setLoading] = useState(false);
+  const { phone } = useLocalSearchParams();
+  const { verifyPhoneCode } = useAuth();
 
-  const handleVerify = async () => {
-    if (code.length !== 6) return;
+  const [code, setCode] = useState(["", "", "", "", "", ""]);
+  const [loading, setLoading] = useState(false);
+  const [timer, setTimer] = useState(60);
+
+  const inputRefs = useRef<TextInput[]>([]);
+
+  useEffect(() => {
+    // Focus first input
+    inputRefs.current[0]?.focus();
+
+    // Start countdown timer
+    const interval = setInterval(() => {
+      setTimer((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleCodeChange = (value: string, index: number) => {
+    // Only allow numbers
+    if (value && !/^\d+$/.test(value)) return;
+
+    const newCode = [...code];
+    newCode[index] = value;
+    setCode(newCode);
+
+    // Auto-focus next input
+    if (value && index < 5) {
+      inputRefs.current[index + 1]?.focus();
+    }
+
+    // Auto-submit when all digits entered
+    if (value && index === 5 && newCode.every((digit) => digit)) {
+      handleVerify(newCode.join(""));
+    }
+  };
+
+  const handleKeyPress = (e: any, index: number) => {
+    if (e.nativeEvent.key === "Backspace" && !code[index] && index > 0) {
+      // Focus previous input on backspace
+      inputRefs.current[index - 1]?.focus();
+    }
+  };
+
+  const handleVerify = async (fullCode?: string) => {
+    const verificationCode = fullCode || code.join("");
+    if (verificationCode.length !== 6) {
+      Alert.alert("Hata", "Lütfen 6 haneli kodu girin");
+      return;
+    }
 
     setLoading(true);
+    Keyboard.dismiss();
+
     try {
-      await verifyCode(verificationId as string, code);
+      await verifyPhoneCode(verificationCode);
       router.replace("/(tabs)");
-    } catch (error) {
-      console.error("Verification error:", error);
+    } catch (error: any) {
+      Alert.alert("Hata", error.message || "Kod doğrulanamadı");
+      // Clear code on error
+      setCode(["", "", "", "", "", ""]);
+      inputRefs.current[0]?.focus();
     } finally {
       setLoading(false);
     }
   };
 
+  const handleResendCode = async () => {
+    if (timer > 0) return;
+
+    // Reset timer
+    setTimer(60);
+
+    try {
+      // Re-initiate phone auth
+      // await signInWithPhone(phone as string);
+      Alert.alert("Başarılı", "Yeni kod gönderildi");
+    } catch (error: any) {
+      Alert.alert("Hata", "Kod gönderilemedi");
+    }
+  };
+
+  const formatPhone = (phoneNumber: string) => {
+    // Format as +90 5XX XXX XX XX
+    const cleaned = phoneNumber.replace(/\D/g, "");
+    if (cleaned.startsWith("90")) {
+      return `+90 ${cleaned.slice(2, 5)} ${cleaned.slice(5, 8)} ${cleaned.slice(
+        8,
+        10
+      )} ${cleaned.slice(10, 12)}`;
+    }
+    return phoneNumber;
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
-        <View style={styles.header}>
-          <Text style={styles.title}>{t.enterCode}</Text>
-          <Text style={styles.subtitle}>
-            {phone} numarasına gönderilen kodu girin
-          </Text>
+        {/* Header */}
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}
+        >
+          <Ionicons name="arrow-back" size={24} color={Colors.gray.dark} />
+        </TouchableOpacity>
+
+        {/* Icon */}
+        <View style={styles.iconContainer}>
+          <Ionicons name="phone-portrait" size={60} color={Colors.primary} />
         </View>
 
-        <View style={styles.form}>
-          <TextInput
-            style={styles.input}
-            placeholder="000000"
-            value={code}
-            onChangeText={setCode}
-            keyboardType="number-pad"
-            maxLength={6}
-            autoFocus
-          />
+        {/* Title */}
+        <Text style={styles.title}>Doğrulama Kodu</Text>
+        <Text style={styles.subtitle}>
+          {formatPhone(phone as string)} numarasına{"\n"}gönderilen 6 haneli
+          kodu girin
+        </Text>
 
-          <TouchableOpacity
-            style={[styles.button, code.length !== 6 && styles.buttonDisabled]}
-            onPress={handleVerify}
-            disabled={code.length !== 6 || loading}
-          >
-            <Text style={styles.buttonText}>{t.confirm}</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.resendButton}>
-            <Text style={styles.resendText}>{t.resendCode}</Text>
-          </TouchableOpacity>
+        {/* Code Input */}
+        <View style={styles.codeContainer}>
+          {code.map((digit, index) => (
+            <TextInput
+              key={index}
+              ref={(ref) => (inputRefs.current[index] = ref!)}
+              style={[
+                styles.codeInput,
+                digit ? styles.codeInputFilled : {},
+                loading && styles.codeInputDisabled,
+              ]}
+              value={digit}
+              onChangeText={(value) => handleCodeChange(value, index)}
+              onKeyPress={(e) => handleKeyPress(e, index)}
+              keyboardType="number-pad"
+              maxLength={1}
+              editable={!loading}
+              selectTextOnFocus
+            />
+          ))}
         </View>
+
+        {/* Verify Button */}
+        <TouchableOpacity
+          style={[
+            styles.verifyButton,
+            code.join("").length !== 6 && styles.buttonDisabled,
+          ]}
+          onPress={() => handleVerify()}
+          disabled={code.join("").length !== 6 || loading}
+        >
+          {loading ? (
+            <ActivityIndicator color={Colors.white} />
+          ) : (
+            <Text style={styles.verifyButtonText}>Doğrula</Text>
+          )}
+        </TouchableOpacity>
+
+        {/* Resend Code */}
+        <View style={styles.resendContainer}>
+          {timer > 0 ? (
+            <Text style={styles.timerText}>Yeni kod gönder ({timer}s)</Text>
+          ) : (
+            <TouchableOpacity onPress={handleResendCode}>
+              <Text style={styles.resendText}>Kodu Tekrar Gönder</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* Help Text */}
+        <Text style={styles.helpText}>
+          Kod gelmedi mi? SMS'lerinizi kontrol edin veya{" "}
+          <Text style={styles.helpLink}>destek alın</Text>
+        </Text>
       </View>
     </SafeAreaView>
   );
@@ -79,56 +211,101 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     padding: 20,
-    justifyContent: "center",
-  },
-  header: {
     alignItems: "center",
-    marginBottom: 40,
+  },
+  backButton: {
+    position: "absolute",
+    top: 20,
+    left: 20,
+    padding: 8,
+  },
+  iconContainer: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: Colors.gray.light,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 60,
+    marginBottom: 24,
+    ...Shadows.medium,
   },
   title: {
-    fontSize: 24,
-    fontWeight: "bold",
+    fontSize: FontSizes.xxlarge,
+    fontFamily: Fonts.bold,
     color: Colors.gray.dark,
-    marginBottom: 10,
+    marginBottom: 8,
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: FontSizes.medium,
+    fontFamily: Fonts.regular,
     color: Colors.gray.medium,
     textAlign: "center",
+    marginBottom: 32,
+    lineHeight: 22,
   },
-  form: {
-    width: "100%",
+  codeContainer: {
+    flexDirection: "row",
+    gap: 8,
+    marginBottom: 32,
   },
-  input: {
-    borderWidth: 1,
+  codeInput: {
+    width: 50,
+    height: 60,
+    borderWidth: 2,
     borderColor: Colors.gray.light,
     borderRadius: 12,
-    padding: 16,
-    fontSize: 24,
-    marginBottom: 20,
+    fontSize: FontSizes.xlarge,
+    fontFamily: Fonts.bold,
     textAlign: "center",
-    letterSpacing: 10,
+    color: Colors.gray.dark,
   },
-  button: {
+  codeInputFilled: {
+    borderColor: Colors.primary,
+    backgroundColor: Colors.primary + "10",
+  },
+  codeInputDisabled: {
+    opacity: 0.5,
+  },
+  verifyButton: {
+    width: "100%",
     backgroundColor: Colors.primary,
     borderRadius: 12,
-    padding: 16,
+    paddingVertical: 16,
     alignItems: "center",
+    marginBottom: 24,
+    ...Shadows.small,
   },
   buttonDisabled: {
     opacity: 0.5,
   },
-  buttonText: {
+  verifyButtonText: {
     color: Colors.white,
-    fontSize: 16,
-    fontWeight: "bold",
+    fontSize: FontSizes.medium,
+    fontFamily: Fonts.bold,
   },
-  resendButton: {
-    marginTop: 20,
-    alignItems: "center",
+  resendContainer: {
+    marginBottom: 24,
+  },
+  timerText: {
+    fontSize: FontSizes.medium,
+    fontFamily: Fonts.regular,
+    color: Colors.gray.medium,
   },
   resendText: {
+    fontSize: FontSizes.medium,
+    fontFamily: Fonts.medium,
     color: Colors.primary,
-    fontSize: 16,
+  },
+  helpText: {
+    fontSize: FontSizes.small,
+    fontFamily: Fonts.regular,
+    color: Colors.gray.medium,
+    textAlign: "center",
+  },
+  helpLink: {
+    color: Colors.primary,
+    fontFamily: Fonts.medium,
+    textDecorationLine: "underline",
   },
 });

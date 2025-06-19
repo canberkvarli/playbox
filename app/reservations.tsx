@@ -23,15 +23,16 @@ export default function ReservationsScreen() {
     if (filter === "all") return true;
     if (filter === "active")
       return (
-        reservation.status === "active" || reservation.status === "upcoming"
+        reservation.status === "confirmed" || reservation.status === "pending"
       );
     if (filter === "past")
       return (
-        reservation.status === "completed" || reservation.status === "cancelled"
+        reservation.status === "completed" ||
+        reservation.status === "cancelled" ||
+        reservation.status === "no_show"
       );
     return true;
   });
-
   const handleCancelReservation = (reservationId: string) => {
     Alert.alert(
       "Rezervasyonu İptal Et",
@@ -95,7 +96,7 @@ export default function ReservationsScreen() {
             Aktif (
             {
               reservations.filter(
-                (r) => r.status === "active" || r.status === "upcoming"
+                (r) => r.status === "confirmed" || r.status === "pending"
               ).length
             }
             )
@@ -131,8 +132,8 @@ export default function ReservationsScreen() {
           filteredReservations.map((reservation) => (
             <View key={reservation.id} style={styles.reservationWrapper}>
               <ReservationCard reservation={reservation} />
-              {(reservation.status === "active" ||
-                reservation.status === "upcoming") && (
+              {(reservation.status === "pending" ||
+                reservation.status === "confirmed") && (
                 <View style={styles.actionButtons}>
                   <TouchableOpacity
                     style={styles.editButton}

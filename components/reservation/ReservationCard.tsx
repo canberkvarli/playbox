@@ -1,8 +1,8 @@
 import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { Reservation } from "../../types";
-import { Colors } from "../../utils/constants";
+import { Colors, Fonts, FontSizes } from "../../utils/constants";
 import { t } from "../../utils/i18n";
 
 interface ReservationCardProps {
@@ -31,16 +31,23 @@ export default function ReservationCard({ reservation }: ReservationCardProps) {
       <Text style={styles.stationName}>{reservation.station?.name}</Text>
 
       <View style={styles.equipmentRow}>
-        <Ionicons
+        <MaterialCommunityIcons
           name={
-            reservation.equipmentType === "basketball"
+            reservation.equipment.type === "basketball"
               ? "basketball"
-              : "football"
+              : "soccer"
           }
           size={24}
-          color={Colors.sports[reservation.equipmentType]}
+          color={
+            Colors.sports[
+              reservation.equipment.type as keyof typeof Colors.sports
+            ] || Colors.gray.medium
+          }
         />
-        <Text style={styles.equipmentText}>{t[reservation.equipmentType]}</Text>
+        <Text style={styles.equipmentText}>
+          {t[reservation.equipment.type as keyof typeof t] ||
+            reservation.equipment.type}
+        </Text>
       </View>
 
       {isActive && (
@@ -94,17 +101,18 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.secondary,
   },
   statusText: {
-    fontSize: 12,
-    fontWeight: "bold",
+    fontSize: FontSizes.small,
+    fontFamily: Fonts.bold,
     color: Colors.white,
   },
   time: {
-    fontSize: 14,
+    fontSize: FontSizes.small,
+    fontFamily: Fonts.regular,
     color: Colors.gray.medium,
   },
   stationName: {
-    fontSize: 16,
-    fontWeight: "bold",
+    fontSize: FontSizes.medium,
+    fontFamily: Fonts.bold,
     color: Colors.gray.dark,
     marginBottom: 8,
   },
@@ -115,7 +123,8 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   equipmentText: {
-    fontSize: 16,
+    fontSize: FontSizes.medium,
+    fontFamily: Fonts.regular,
     color: Colors.gray.dark,
   },
   actions: {
@@ -134,7 +143,8 @@ const styles = StyleSheet.create({
   },
   unlockText: {
     color: Colors.white,
-    fontWeight: "bold",
+    fontFamily: Fonts.bold,
+    fontSize: FontSizes.small,
   },
   endButton: {
     flex: 1,
@@ -147,7 +157,8 @@ const styles = StyleSheet.create({
   },
   endText: {
     color: Colors.primary,
-    fontWeight: "bold",
+    fontFamily: Fonts.bold,
+    fontSize: FontSizes.small,
   },
   codeContainer: {
     flexDirection: "row",
@@ -159,12 +170,13 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   codeLabel: {
-    fontSize: 14,
+    fontSize: FontSizes.small,
+    fontFamily: Fonts.regular,
     color: Colors.gray.medium,
   },
   code: {
-    fontSize: 18,
-    fontWeight: "bold",
+    fontSize: FontSizes.large,
+    fontFamily: Fonts.bold,
     color: Colors.gray.dark,
     letterSpacing: 2,
   },

@@ -16,7 +16,7 @@ import {
   FontAwesome5,
 } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useAuth } from "../../contexts/AuthContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { Colors } from "../../utils/constants";
 import { t } from "../../utils/i18n";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
